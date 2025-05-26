@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Camera with Crop</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet"/>
+  <title>Camera Capture with Crop</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet" />
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -82,8 +82,10 @@
 
     #cropModal {
       position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
       background: rgba(0, 0, 0, 0.8);
       display: none;
       justify-content: center;
@@ -91,19 +93,27 @@
       z-index: 999;
     }
 
-    #cropBox {
+    #cropContainer {
+      background: #fff;
+      padding: 10px;
+      border-radius: 8px;
       max-width: 90vw;
       max-height: 80vh;
     }
 
+    #cropImage {
+      max-width: 100%;
+      max-height: 60vh;
+    }
+
     #cropActions {
-      margin-top: 10px;
       text-align: center;
+      margin-top: 10px;
     }
 
     #cropActions button {
-      padding: 10px 20px;
       margin: 0 10px;
+      padding: 8px 16px;
       font-size: 16px;
     }
   </style>
@@ -112,7 +122,7 @@
 
   <h2>Capture & Crop Images</h2>
 
-  <input type="file" accept="image/*" capture="environment" id="cameraInput" style="display:none;" />
+  <input type="file" accept="image/*" capture="environment" id="cameraInput" style="display: none;" />
   <img id="latestPreview" />
   <input type="text" id="captionInput" placeholder="Enter caption (optional)" />
   <div id="previewContainer"></div>
@@ -120,8 +130,8 @@
 
   <!-- Crop Modal -->
   <div id="cropModal">
-    <div>
-      <img id="cropBox" />
+    <div id="cropContainer">
+      <img id="cropImage" />
       <div id="cropActions">
         <button id="cancelCrop">Cancel</button>
         <button id="confirmCrop">Crop & Save</button>
@@ -138,7 +148,7 @@
     const addMoreBtn = document.getElementById("addMoreBtn");
 
     const cropModal = document.getElementById("cropModal");
-    const cropBox = document.getElementById("cropBox");
+    const cropImage = document.getElementById("cropImage");
     const cancelCrop = document.getElementById("cancelCrop");
     const confirmCrop = document.getElementById("confirmCrop");
 
@@ -154,16 +164,17 @@
 
       const reader = new FileReader();
       reader.onload = function (e) {
-        cropBox.src = e.target.result;
+        cropImage.src = e.target.result;
         cropModal.style.display = "flex";
 
-        setTimeout(() => {
+        // Wait for image to load before cropping
+        cropImage.onload = () => {
           if (cropper) cropper.destroy();
-          cropper = new Cropper(cropBox, {
-            aspectRatio: 1, // Change to 4/3 or other if needed
-            viewMode: 1
+          cropper = new Cropper(cropImage, {
+            aspectRatio: 1, // Change this to 4/3 or 16/9 if needed
+            viewMode: 1,
           });
-        }, 100);
+        };
       };
       reader.readAsDataURL(file);
       cameraInput.value = "";
@@ -171,15 +182,25 @@
 
     cancelCrop.addEventListener("click", () => {
       cropModal.style.display = "none";
-      if (cropper) cropper.destroy();
+      if (cropper) {
+        cropper.destroy();
+        cropper = null;
+      }
     });
 
     confirmCrop.addEventListener("click", () => {
-      const canvas = cropper.getCroppedCanvas({ width: 500, height: 500 });
+      if (!cropper) return;
+
+      const canvas = cropper.getCroppedCanvas({
+        width: 500,
+        height: 500
+      });
+
       const croppedImage = canvas.toDataURL("image/jpeg");
 
       cropModal.style.display = "none";
       cropper.destroy();
+      cropper = null;
 
       capturedImages.push({ image: croppedImage, caption: "" });
       const index = capturedImages.length - 1;
