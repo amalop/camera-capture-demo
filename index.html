@@ -1,15 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Camera Capture with Crop</title>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet" />
+
+  <!-- Cropper.js CSS -->
+  <link
+    href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css"
+    rel="stylesheet"
+  />
+
   <style>
     body {
       font-family: Arial, sans-serif;
       padding: 16px;
     }
+
     #latestPreview {
       width: 100%;
       max-height: 300px;
@@ -18,21 +25,25 @@
       border-radius: 10px;
       margin-bottom: 10px;
     }
+
     #captionInput {
       width: 100%;
       display: none;
       margin-bottom: 20px;
       padding: 8px;
     }
+
     #previewContainer {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
     }
+
     .image-card {
       width: 90px;
       text-align: center;
     }
+
     .image-card img {
       width: 80px;
       height: 80px;
@@ -40,10 +51,12 @@
       border-radius: 6px;
       cursor: pointer;
     }
+
     .image-card .caption {
       font-size: 12px;
       margin: 2px 0;
     }
+
     .image-card button {
       background: none;
       border: none;
@@ -51,6 +64,7 @@
       font-size: 16px;
       cursor: pointer;
     }
+
     #addMoreBtn {
       padding: 10px 16px;
       font-size: 24px;
@@ -61,30 +75,37 @@
       margin-top: 20px;
       cursor: pointer;
     }
+
     #cropModal {
       position: fixed;
-      top: 0; left: 0;
-      width: 100vw; height: 100vh;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
       background: rgba(0, 0, 0, 0.75);
       display: none;
       justify-content: center;
       align-items: center;
       z-index: 999;
     }
+
     #cropContainer {
       background: white;
       padding: 10px;
       border-radius: 10px;
       max-width: 90vw;
     }
+
     #cropImage {
       max-width: 100%;
       max-height: 70vh;
     }
+
     #cropActions {
       margin-top: 10px;
       text-align: center;
     }
+
     #cropActions button {
       margin: 0 10px;
       padding: 8px 16px;
@@ -96,10 +117,14 @@
 
   <h2>Capture, Crop & Manage Images</h2>
 
-  <input type="file" accept="image/*" capture="environment" id="cameraInput" style="display: none;">
+  <!-- Hidden Camera Input -->
+  <input type="file" accept="image/*" capture="environment" id="cameraInput" style="display: none;" />
+
+  <!-- Preview -->
   <img id="latestPreview" />
   <input type="text" id="captionInput" placeholder="Enter caption (optional)" />
 
+  <!-- Thumbnails -->
   <div id="previewContainer"></div>
   <button id="addMoreBtn">+</button>
 
@@ -114,7 +139,10 @@
     </div>
   </div>
 
+  <!-- Cropper.js JS -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+  <!-- Main Script -->
   <script>
     const cameraInput = document.getElementById('cameraInput');
     const latestPreview = document.getElementById('latestPreview');
@@ -238,6 +266,5 @@
       });
     }
   </script>
-
 </body>
 </html>
