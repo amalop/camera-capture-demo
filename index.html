@@ -4,18 +4,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Camera Image Capture</title>
   <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+
     #previewContainer {
       display: flex;
       flex-wrap: wrap;
       margin-top: 10px;
     }
+
+    .image-wrapper {
+      margin: 5px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+
     .preview-img {
       width: 80px;
       height: 80px;
       object-fit: cover;
-      margin: 5px;
       border-radius: 8px;
+      cursor: pointer;
+      border: 2px solid transparent;
     }
+
+    .preview-img:hover {
+      border-color: #007bff;
+    }
+
+    .caption {
+      font-size: 12px;
+      margin-top: 4px;
+      text-align: center;
+      width: 80px;
+      word-break: break-word;
+    }
+
     #latestPreview {
       width: 100%;
       max-height: 300px;
@@ -24,6 +52,16 @@
       border: 2px solid #ccc;
       border-radius: 10px;
     }
+
+    #captionInput {
+      width: 100%;
+      padding: 8px;
+      margin-top: 10px;
+      box-sizing: border-box;
+      font-size: 14px;
+      display: none;
+    }
+
     #addMoreBtn {
       margin-top: 10px;
       font-size: 20px;
@@ -32,6 +70,14 @@
       color: white;
       border: none;
       border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .delete-btn {
+      font-size: 14px;
+      margin-top: 4px;
+      border: none;
+      background: transparent;
       cursor: pointer;
     }
   </style>
@@ -52,6 +98,13 @@
   <!-- Latest image preview -->
   <img id="latestPreview" src="" alt="Latest preview" style="display: none;" />
 
+  <!-- Input caption for latest image -->
+  <input 
+    type="text" 
+    id="captionInput" 
+    placeholder="Enter caption for this image (optional)" 
+  />
+
   <!-- List of all captured images -->
   <div id="previewContainer"></div>
 
@@ -62,6 +115,7 @@
     const cameraInput = document.getElementById('cameraInput');
     const previewContainer = document.getElementById('previewContainer');
     const latestPreview = document.getElementById('latestPreview');
+    const captionInput = document.getElementById('captionInput');
     const addMoreBtn = document.getElementById('addMoreBtn');
 
     let capturedImages = [];
@@ -80,23 +134,71 @@
       reader.onload = function(e) {
         const imgDataUrl = e.target.result;
 
-        // Save to our in-memory list
-        capturedImages.push(imgDataUrl);
-
         // Show latest preview
         latestPreview.src = imgDataUrl;
         latestPreview.style.display = 'block';
-
-        // Add to thumbnail list
-        const imgThumb = document.createElement('img');
-        imgThumb.src = imgDataUrl;
-        imgThumb.className = 'preview-img';
-        previewContainer.appendChild(imgThumb);
-
-        // Clear input for next capture
-        cameraInput.value = '';
+        captionInput.style.display = 'block';
+        captionInput.value = '';
+        
+        // Temporarily store this image before saving caption
+        latestPreview.dataset.tempImage = imgDataUrl;
       };
       reader.readAsDataURL(file);
+
+      cameraInput.value = ''; // Clear for next capture
+    });
+
+    captionInput.addEventListener('blur', function () {
+      const imgDataUrl = latestPreview.dataset.tempImage;
+      const captionText = captionInput.value;
+
+      if (!imgDataUrl) return;
+
+      const imageObj = { image: imgDataUrl, caption: captionText };
+      capturedImages.push(imageObj);
+
+      const wrapper = document.createElement('div');
+      wrapper.className = 'image-wrapper';
+
+      const thumb = document.createElement('img');
+      thumb.src = imgDataUrl;
+      thumb.className = 'preview-img';
+      thumb.addEventListener('click', () => {
+        latestPreview.src = imgDataUrl;
+        latestPreview.style.display = 'block';
+        captionInput.value = imageObj.caption;
+        captionInput.style.display = 'block';
+        latestPreview.dataset.tempImage = imgDataUrl;
+      });
+
+      const cap = document.createElement('div');
+      cap.className = 'caption';
+      cap.textContent = captionText;
+
+      const delBtn = document.createElement('button');
+      delBtn.textContent = '🗑️';
+      delBtn.className = 'delete-btn';
+      delBtn.title = 'Delete this image';
+
+      delBtn.addEventListener('click', () => {
+        wrapper.remove();
+        const index = capturedImages.indexOf(imageObj);
+        if (index > -1) capturedImages.splice(index, 1);
+
+        if (latestPreview.src === imgDataUrl) {
+          latestPreview.style.display = 'none';
+          captionInput.style.display = 'none';
+          captionInput.value = '';
+          delete latestPreview.dataset.tempImage;
+        }
+      });
+
+      wrapper.appendChild(thumb);
+      wrapper.appendChild(cap);
+      wrapper.appendChild(delBtn);
+      previewContainer.appendChild(wrapper);
+
+      delete latestPreview.dataset.tempImage;
     });
   </script>
 
