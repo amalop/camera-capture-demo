@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Camera Image Capture</title>
+  <title>Camera with Crop</title>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet"/>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -78,27 +79,57 @@
       border-radius: 50%;
       cursor: pointer;
     }
+
+    #cropModal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.8);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 999;
+    }
+
+    #cropBox {
+      max-width: 90vw;
+      max-height: 80vh;
+    }
+
+    #cropActions {
+      margin-top: 10px;
+      text-align: center;
+    }
+
+    #cropActions button {
+      padding: 10px 20px;
+      margin: 0 10px;
+      font-size: 16px;
+    }
   </style>
 </head>
 <body>
 
-  <h2>Capture Images</h2>
+  <h2>Capture & Crop Images</h2>
 
-  <!-- Hidden camera input -->
   <input type="file" accept="image/*" capture="environment" id="cameraInput" style="display:none;" />
-
-  <!-- Latest image preview -->
   <img id="latestPreview" />
-
-  <!-- Caption for latest preview -->
   <input type="text" id="captionInput" placeholder="Enter caption (optional)" />
-
-  <!-- Thumbnails list -->
   <div id="previewContainer"></div>
-
-  <!-- Add More Button -->
   <button id="addMoreBtn">+</button>
 
+  <!-- Crop Modal -->
+  <div id="cropModal">
+    <div>
+      <img id="cropBox" />
+      <div id="cropActions">
+        <button id="cancelCrop">Cancel</button>
+        <button id="confirmCrop">Crop & Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   <script>
     const cameraInput = document.getElementById("cameraInput");
     const latestPreview = document.getElementById("latestPreview");
@@ -106,42 +137,57 @@
     const previewContainer = document.getElementById("previewContainer");
     const addMoreBtn = document.getElementById("addMoreBtn");
 
+    const cropModal = document.getElementById("cropModal");
+    const cropBox = document.getElementById("cropBox");
+    const cancelCrop = document.getElementById("cancelCrop");
+    const confirmCrop = document.getElementById("confirmCrop");
+
     let capturedImages = [];
     let currentPreviewIndex = null;
+    let cropper;
 
-    // Open camera
-    addMoreBtn.addEventListener("click", () => {
-      cameraInput.click();
-        renderThumbnails();
-    });
+    addMoreBtn.addEventListener("click", () => cameraInput.click());
 
-    // Handle image capture
     cameraInput.addEventListener("change", function (event) {
       const file = event.target.files[0];
       if (!file) return;
 
       const reader = new FileReader();
       reader.onload = function (e) {
-        const imageUrl = e.target.result;
+        cropBox.src = e.target.result;
+        cropModal.style.display = "flex";
 
-        // Add to list
-        capturedImages.push({ image: imageUrl, caption: "" });
-        const index = capturedImages.length - 1;
-
-        // Update preview
-        showImagePreview(index);
-
-        // Render thumbnail
-        renderThumbnails();
-
-        // Clear input
-        cameraInput.value = "";
+        setTimeout(() => {
+          if (cropper) cropper.destroy();
+          cropper = new Cropper(cropBox, {
+            aspectRatio: 1, // Change to 4/3 or other if needed
+            viewMode: 1
+          });
+        }, 100);
       };
-
       reader.readAsDataURL(file);
+      cameraInput.value = "";
     });
 
-    // Show full image and caption
+    cancelCrop.addEventListener("click", () => {
+      cropModal.style.display = "none";
+      if (cropper) cropper.destroy();
+    });
+
+    confirmCrop.addEventListener("click", () => {
+      const canvas = cropper.getCroppedCanvas({ width: 500, height: 500 });
+      const croppedImage = canvas.toDataURL("image/jpeg");
+
+      cropModal.style.display = "none";
+      cropper.destroy();
+
+      capturedImages.push({ image: croppedImage, caption: "" });
+      const index = capturedImages.length - 1;
+
+      showImagePreview(index);
+      renderThumbnails();
+    });
+
     function showImagePreview(index) {
       const data = capturedImages[index];
       if (!data) return;
@@ -153,7 +199,6 @@
       currentPreviewIndex = index;
     }
 
-    // On caption change
     captionInput.addEventListener("input", () => {
       if (currentPreviewIndex !== null) {
         capturedImages[currentPreviewIndex].caption = captionInput.value;
@@ -161,7 +206,6 @@
       }
     });
 
-    // Render thumbnails
     function renderThumbnails() {
       previewContainer.innerHTML = "";
 
@@ -172,9 +216,7 @@
         const thumb = document.createElement("img");
         thumb.src = item.image;
         thumb.className = "preview-img";
-        thumb.addEventListener("click", () => {
-          showImagePreview(index);
-        });
+        thumb.addEventListener("click", () => showImagePreview(index));
 
         const caption = document.createElement("div");
         caption.className = "caption";
@@ -183,18 +225,15 @@
         const deleteBtn = document.createElement("button");
         deleteBtn.className = "delete-btn";
         deleteBtn.innerText = "🗑️";
-        deleteBtn.title = "Delete image";
         deleteBtn.addEventListener("click", () => {
           capturedImages.splice(index, 1);
           renderThumbnails();
-
           if (currentPreviewIndex === index) {
             latestPreview.style.display = "none";
             captionInput.style.display = "none";
-            captionInput.value = "";
             currentPreviewIndex = null;
           } else if (currentPreviewIndex > index) {
-            currentPreviewIndex--; // shift left
+            currentPreviewIndex--;
           }
         });
 
@@ -205,6 +244,5 @@
       });
     }
   </script>
-
 </body>
 </html>
