@@ -1,50 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Camera Capture with Crop</title>
-
-  <!-- Cropper.js CSS -->
-  <link
-    href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css"
-    rel="stylesheet"
-  />
-
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camera Image Capture</title>
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 16px;
-    }
-
-    #latestPreview {
-      width: 100%;
-      max-height: 300px;
-      display: none;
-      object-fit: contain;
-      border-radius: 10px;
-      margin-bottom: 10px;
-    }
-
-    #captionInput {
-      width: 100%;
-      display: none;
-      margin-bottom: 20px;
-      padding: 8px;
+      padding: 20px;
     }
 
     #previewContainer {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
+      margin-top: 20px;
     }
 
-    .image-card {
+    .image-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      padding: 5px;
       width: 90px;
-      text-align: center;
     }
 
-    .image-card img {
+    .preview-img {
       width: 80px;
       height: 80px;
       object-fit: cover;
@@ -52,219 +34,177 @@
       cursor: pointer;
     }
 
-    .image-card .caption {
+    .caption {
       font-size: 12px;
-      margin: 2px 0;
+      text-align: center;
+      margin: 4px 0;
+      max-width: 80px;
+      word-wrap: break-word;
     }
 
-    .image-card button {
+    .delete-btn {
       background: none;
       border: none;
-      color: red;
-      font-size: 16px;
       cursor: pointer;
+      font-size: 16px;
+      color: red;
+    }
+
+    #latestPreview {
+      width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      margin-top: 10px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+      display: none;
+    }
+
+    #captionInput {
+      width: 100%;
+      padding: 8px;
+      margin-top: 10px;
+      font-size: 14px;
+      display: none;
     }
 
     #addMoreBtn {
-      padding: 10px 16px;
+      margin-top: 15px;
       font-size: 24px;
+      padding: 10px 16px;
       background-color: #007bff;
       color: white;
-      border-radius: 50%;
       border: none;
-      margin-top: 20px;
+      border-radius: 50%;
       cursor: pointer;
-    }
-
-    #cropModal {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.75);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 999;
-    }
-
-    #cropContainer {
-      background: white;
-      padding: 10px;
-      border-radius: 10px;
-      max-width: 90vw;
-    }
-
-    #cropImage {
-      max-width: 100%;
-      max-height: 70vh;
-    }
-
-    #cropActions {
-      margin-top: 10px;
-      text-align: center;
-    }
-
-    #cropActions button {
-      margin: 0 10px;
-      padding: 8px 16px;
-      font-size: 16px;
     }
   </style>
 </head>
 <body>
 
-  <h2>Capture, Crop & Manage Images</h2>
+  <h2>Capture Images</h2>
 
-  <!-- Hidden Camera Input -->
-  <input type="file" accept="image/*" capture="environment" id="cameraInput" style="display: none;" />
+  <!-- Hidden camera input -->
+  <input type="file" accept="image/*" capture="environment" id="cameraInput" style="display:none;" />
 
-  <!-- Preview -->
+  <!-- Latest image preview -->
   <img id="latestPreview" />
+
+  <!-- Caption for latest preview -->
   <input type="text" id="captionInput" placeholder="Enter caption (optional)" />
 
-  <!-- Thumbnails -->
+  <!-- Thumbnails list -->
   <div id="previewContainer"></div>
+
+  <!-- Add More Button -->
   <button id="addMoreBtn">+</button>
 
-  <!-- Crop Modal -->
-  <div id="cropModal">
-    <div id="cropContainer">
-      <img id="cropImage" />
-      <div id="cropActions">
-        <button id="cancelCrop">Cancel</button>
-        <button id="confirmCrop">Crop & Save</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Cropper.js JS -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-
-  <!-- Main Script -->
   <script>
-    const cameraInput = document.getElementById('cameraInput');
-    const latestPreview = document.getElementById('latestPreview');
-    const captionInput = document.getElementById('captionInput');
-    const previewContainer = document.getElementById('previewContainer');
-    const addMoreBtn = document.getElementById('addMoreBtn');
-
-    const cropModal = document.getElementById('cropModal');
-    const cropImage = document.getElementById('cropImage');
-    const cancelCrop = document.getElementById('cancelCrop');
-    const confirmCrop = document.getElementById('confirmCrop');
+    const cameraInput = document.getElementById("cameraInput");
+    const latestPreview = document.getElementById("latestPreview");
+    const captionInput = document.getElementById("captionInput");
+    const previewContainer = document.getElementById("previewContainer");
+    const addMoreBtn = document.getElementById("addMoreBtn");
 
     let capturedImages = [];
     let currentPreviewIndex = null;
-    let cropper = null;
 
-    addMoreBtn.addEventListener('click', () => cameraInput.click());
+    // Open camera
+    addMoreBtn.addEventListener("click", () => {
+      cameraInput.click();
+        renderThumbnails();
+    });
 
-    cameraInput.addEventListener('change', (event) => {
+    // Handle image capture
+    cameraInput.addEventListener("change", function (event) {
       const file = event.target.files[0];
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = (e) => {
-        cropImage.src = e.target.result;
-        cropModal.style.display = 'flex';
+      reader.onload = function (e) {
+        const imageUrl = e.target.result;
 
-        cropImage.onload = () => {
-          if (cropper) cropper.destroy();
-          cropper = new Cropper(cropImage, {
-            aspectRatio: 1,
-            viewMode: 1
-          });
-        };
+        // Add to list
+        capturedImages.push({ image: imageUrl, caption: "" });
+        const index = capturedImages.length - 1;
+
+        // Update preview
+        showImagePreview(index);
+
+        // Render thumbnail
+        renderThumbnails();
+
+        // Clear input
+        cameraInput.value = "";
       };
+
       reader.readAsDataURL(file);
-      cameraInput.value = '';
     });
 
-    cancelCrop.addEventListener('click', () => {
-      cropModal.style.display = 'none';
-      if (cropper) {
-        cropper.destroy();
-        cropper = null;
-      }
-    });
-
-    confirmCrop.addEventListener('click', () => {
-      if (!cropper) return;
-
-      const canvas = cropper.getCroppedCanvas({
-        width: 500,
-        height: 500,
-      });
-
-      const croppedDataUrl = canvas.toDataURL('image/jpeg');
-
-      cropModal.style.display = 'none';
-      cropper.destroy();
-      cropper = null;
-
-      const imageData = { image: croppedDataUrl, caption: '' };
-      capturedImages.push(imageData);
-      currentPreviewIndex = capturedImages.length - 1;
-
-      showPreview(currentPreviewIndex);
-      renderThumbnails();
-    });
-
-    function showPreview(index) {
+    // Show full image and caption
+    function showImagePreview(index) {
       const data = capturedImages[index];
       if (!data) return;
 
       latestPreview.src = data.image;
-      latestPreview.style.display = 'block';
-      captionInput.style.display = 'block';
+      latestPreview.style.display = "block";
+      captionInput.style.display = "block";
       captionInput.value = data.caption;
       currentPreviewIndex = index;
     }
 
-    captionInput.addEventListener('input', () => {
+    // On caption change
+    captionInput.addEventListener("input", () => {
       if (currentPreviewIndex !== null) {
         capturedImages[currentPreviewIndex].caption = captionInput.value;
         renderThumbnails();
       }
     });
 
+    // Render thumbnails
     function renderThumbnails() {
-      previewContainer.innerHTML = '';
+      previewContainer.innerHTML = "";
 
       capturedImages.forEach((item, index) => {
-        const card = document.createElement('div');
-        card.className = 'image-card';
+        const wrapper = document.createElement("div");
+        wrapper.className = "image-wrapper";
 
-        const thumb = document.createElement('img');
+        const thumb = document.createElement("img");
         thumb.src = item.image;
-        thumb.addEventListener('click', () => showPreview(index));
+        thumb.className = "preview-img";
+        thumb.addEventListener("click", () => {
+          showImagePreview(index);
+        });
 
-        const caption = document.createElement('div');
-        caption.className = 'caption';
-        caption.innerText = item.caption;
+        const caption = document.createElement("div");
+        caption.className = "caption";
+        caption.innerText = item.caption || "";
 
-        const delBtn = document.createElement('button');
-        delBtn.innerText = '🗑️';
-        delBtn.onclick = () => {
+        const deleteBtn = document.createElement("button");
+        deleteBtn.className = "delete-btn";
+        deleteBtn.innerText = "🗑️";
+        deleteBtn.title = "Delete image";
+        deleteBtn.addEventListener("click", () => {
           capturedImages.splice(index, 1);
+          renderThumbnails();
+
           if (currentPreviewIndex === index) {
-            latestPreview.style.display = 'none';
-            captionInput.style.display = 'none';
+            latestPreview.style.display = "none";
+            captionInput.style.display = "none";
+            captionInput.value = "";
             currentPreviewIndex = null;
           } else if (currentPreviewIndex > index) {
-            currentPreviewIndex--;
+            currentPreviewIndex--; // shift left
           }
-          renderThumbnails();
-        };
+        });
 
-        card.appendChild(thumb);
-        card.appendChild(caption);
-        card.appendChild(delBtn);
-        previewContainer.appendChild(card);
+        wrapper.appendChild(thumb);
+        wrapper.appendChild(caption);
+        wrapper.appendChild(deleteBtn);
+        previewContainer.appendChild(wrapper);
       });
     }
   </script>
+
 </body>
 </html>
