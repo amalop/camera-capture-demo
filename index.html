@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camera Image Capture</title>
+  <style>
+    #previewContainer {
+      display: flex;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+    .preview-img {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      margin: 5px;
+      border-radius: 8px;
+    }
+    #latestPreview {
+      width: 100%;
+      max-height: 300px;
+      object-fit: contain;
+      margin-top: 10px;
+      border: 2px solid #ccc;
+      border-radius: 10px;
+    }
+    #addMoreBtn {
+      margin-top: 10px;
+      font-size: 20px;
+      padding: 10px 20px;
+      background-color: #007bff;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Capture Images</h2>
+  
+  <!-- Hidden input for camera capture -->
+  <input 
+    type="file" 
+    accept="image/*" 
+    capture="environment" 
+    id="cameraInput" 
+    style="display: none;"
+  />
+
+  <!-- Latest image preview -->
+  <img id="latestPreview" src="" alt="Latest preview" style="display: none;" />
+
+  <!-- List of all captured images -->
+  <div id="previewContainer"></div>
+
+  <!-- "+" button to add more -->
+  <button id="addMoreBtn">+</button>
+
+  <script>
+    const cameraInput = document.getElementById('cameraInput');
+    const previewContainer = document.getElementById('previewContainer');
+    const latestPreview = document.getElementById('latestPreview');
+    const addMoreBtn = document.getElementById('addMoreBtn');
+
+    let capturedImages = [];
+
+    function openCamera() {
+      cameraInput.click();
+    }
+
+    addMoreBtn.addEventListener('click', openCamera);
+
+    cameraInput.addEventListener('change', function(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const imgDataUrl = e.target.result;
+
+        // Save to our in-memory list
+        capturedImages.push(imgDataUrl);
+
+        // Show latest preview
+        latestPreview.src = imgDataUrl;
+        latestPreview.style.display = 'block';
+
+        // Add to thumbnail list
+        const imgThumb = document.createElement('img');
+        imgThumb.src = imgDataUrl;
+        imgThumb.className = 'preview-img';
+        previewContainer.appendChild(imgThumb);
+
+        // Clear input for next capture
+        cameraInput.value = '';
+      };
+      reader.readAsDataURL(file);
+    });
+  </script>
+
+</body>
+</html>
