@@ -1,116 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Camera Capture with Crop</title>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet" />
   <style>
     body {
       font-family: Arial, sans-serif;
-      padding: 20px;
+      padding: 16px;
     }
-
+    #latestPreview {
+      width: 100%;
+      max-height: 300px;
+      display: none;
+      object-fit: contain;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+    #captionInput {
+      width: 100%;
+      display: none;
+      margin-bottom: 20px;
+      padding: 8px;
+    }
     #previewContainer {
       display: flex;
       flex-wrap: wrap;
       gap: 10px;
-      margin-top: 20px;
     }
-
-    .image-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      padding: 5px;
+    .image-card {
       width: 90px;
+      text-align: center;
     }
-
-    .preview-img {
+    .image-card img {
       width: 80px;
       height: 80px;
       object-fit: cover;
       border-radius: 6px;
       cursor: pointer;
     }
-
-    .caption {
+    .image-card .caption {
       font-size: 12px;
-      text-align: center;
-      margin: 4px 0;
-      max-width: 80px;
-      word-wrap: break-word;
+      margin: 2px 0;
     }
-
-    .delete-btn {
+    .image-card button {
       background: none;
       border: none;
-      cursor: pointer;
-      font-size: 16px;
       color: red;
+      font-size: 16px;
+      cursor: pointer;
     }
-
-    #latestPreview {
-      width: 100%;
-      max-height: 300px;
-      object-fit: contain;
-      margin-top: 10px;
-      border: 2px solid #ccc;
-      border-radius: 10px;
-      display: none;
-    }
-
-    #captionInput {
-      width: 100%;
-      padding: 8px;
-      margin-top: 10px;
-      font-size: 14px;
-      display: none;
-    }
-
     #addMoreBtn {
-      margin-top: 15px;
-      font-size: 24px;
       padding: 10px 16px;
+      font-size: 24px;
       background-color: #007bff;
       color: white;
-      border: none;
       border-radius: 50%;
+      border: none;
+      margin-top: 20px;
       cursor: pointer;
     }
-
     #cropModal {
       position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.8);
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(0, 0, 0, 0.75);
       display: none;
       justify-content: center;
       align-items: center;
       z-index: 999;
     }
-
     #cropContainer {
-      background: #fff;
+      background: white;
       padding: 10px;
-      border-radius: 8px;
+      border-radius: 10px;
       max-width: 90vw;
-      max-height: 80vh;
     }
-
     #cropImage {
       max-width: 100%;
-      max-height: 60vh;
+      max-height: 70vh;
     }
-
     #cropActions {
-      text-align: center;
       margin-top: 10px;
+      text-align: center;
     }
-
     #cropActions button {
       margin: 0 10px;
       padding: 8px 16px;
@@ -120,11 +94,12 @@
 </head>
 <body>
 
-  <h2>Capture & Crop Images</h2>
+  <h2>Capture, Crop & Manage Images</h2>
 
-  <input type="file" accept="image/*" capture="environment" id="cameraInput" style="display: none;" />
+  <input type="file" accept="image/*" capture="environment" id="cameraInput" style="display: none;">
   <img id="latestPreview" />
   <input type="text" id="captionInput" placeholder="Enter caption (optional)" />
+
   <div id="previewContainer"></div>
   <button id="addMoreBtn">+</button>
 
@@ -141,86 +116,86 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
   <script>
-    const cameraInput = document.getElementById("cameraInput");
-    const latestPreview = document.getElementById("latestPreview");
-    const captionInput = document.getElementById("captionInput");
-    const previewContainer = document.getElementById("previewContainer");
-    const addMoreBtn = document.getElementById("addMoreBtn");
+    const cameraInput = document.getElementById('cameraInput');
+    const latestPreview = document.getElementById('latestPreview');
+    const captionInput = document.getElementById('captionInput');
+    const previewContainer = document.getElementById('previewContainer');
+    const addMoreBtn = document.getElementById('addMoreBtn');
 
-    const cropModal = document.getElementById("cropModal");
-    const cropImage = document.getElementById("cropImage");
-    const cancelCrop = document.getElementById("cancelCrop");
-    const confirmCrop = document.getElementById("confirmCrop");
+    const cropModal = document.getElementById('cropModal');
+    const cropImage = document.getElementById('cropImage');
+    const cancelCrop = document.getElementById('cancelCrop');
+    const confirmCrop = document.getElementById('confirmCrop');
 
     let capturedImages = [];
     let currentPreviewIndex = null;
-    let cropper;
+    let cropper = null;
 
-    addMoreBtn.addEventListener("click", () => cameraInput.click());
+    addMoreBtn.addEventListener('click', () => cameraInput.click());
 
-    cameraInput.addEventListener("change", function (event) {
+    cameraInput.addEventListener('change', (event) => {
       const file = event.target.files[0];
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = function (e) {
+      reader.onload = (e) => {
         cropImage.src = e.target.result;
-        cropModal.style.display = "flex";
+        cropModal.style.display = 'flex';
 
-        // Wait for image to load before cropping
         cropImage.onload = () => {
           if (cropper) cropper.destroy();
           cropper = new Cropper(cropImage, {
-            aspectRatio: 1, // Change this to 4/3 or 16/9 if needed
-            viewMode: 1,
+            aspectRatio: 1,
+            viewMode: 1
           });
         };
       };
       reader.readAsDataURL(file);
-      cameraInput.value = "";
+      cameraInput.value = '';
     });
 
-    cancelCrop.addEventListener("click", () => {
-      cropModal.style.display = "none";
+    cancelCrop.addEventListener('click', () => {
+      cropModal.style.display = 'none';
       if (cropper) {
         cropper.destroy();
         cropper = null;
       }
     });
 
-    confirmCrop.addEventListener("click", () => {
+    confirmCrop.addEventListener('click', () => {
       if (!cropper) return;
 
       const canvas = cropper.getCroppedCanvas({
         width: 500,
-        height: 500
+        height: 500,
       });
 
-      const croppedImage = canvas.toDataURL("image/jpeg");
+      const croppedDataUrl = canvas.toDataURL('image/jpeg');
 
-      cropModal.style.display = "none";
+      cropModal.style.display = 'none';
       cropper.destroy();
       cropper = null;
 
-      capturedImages.push({ image: croppedImage, caption: "" });
-      const index = capturedImages.length - 1;
+      const imageData = { image: croppedDataUrl, caption: '' };
+      capturedImages.push(imageData);
+      currentPreviewIndex = capturedImages.length - 1;
 
-      showImagePreview(index);
+      showPreview(currentPreviewIndex);
       renderThumbnails();
     });
 
-    function showImagePreview(index) {
+    function showPreview(index) {
       const data = capturedImages[index];
       if (!data) return;
 
       latestPreview.src = data.image;
-      latestPreview.style.display = "block";
-      captionInput.style.display = "block";
+      latestPreview.style.display = 'block';
+      captionInput.style.display = 'block';
       captionInput.value = data.caption;
       currentPreviewIndex = index;
     }
 
-    captionInput.addEventListener("input", () => {
+    captionInput.addEventListener('input', () => {
       if (currentPreviewIndex !== null) {
         capturedImages[currentPreviewIndex].caption = captionInput.value;
         renderThumbnails();
@@ -228,42 +203,41 @@
     });
 
     function renderThumbnails() {
-      previewContainer.innerHTML = "";
+      previewContainer.innerHTML = '';
 
       capturedImages.forEach((item, index) => {
-        const wrapper = document.createElement("div");
-        wrapper.className = "image-wrapper";
+        const card = document.createElement('div');
+        card.className = 'image-card';
 
-        const thumb = document.createElement("img");
+        const thumb = document.createElement('img');
         thumb.src = item.image;
-        thumb.className = "preview-img";
-        thumb.addEventListener("click", () => showImagePreview(index));
+        thumb.addEventListener('click', () => showPreview(index));
 
-        const caption = document.createElement("div");
-        caption.className = "caption";
-        caption.innerText = item.caption || "";
+        const caption = document.createElement('div');
+        caption.className = 'caption';
+        caption.innerText = item.caption;
 
-        const deleteBtn = document.createElement("button");
-        deleteBtn.className = "delete-btn";
-        deleteBtn.innerText = "🗑️";
-        deleteBtn.addEventListener("click", () => {
+        const delBtn = document.createElement('button');
+        delBtn.innerText = '🗑️';
+        delBtn.onclick = () => {
           capturedImages.splice(index, 1);
-          renderThumbnails();
           if (currentPreviewIndex === index) {
-            latestPreview.style.display = "none";
-            captionInput.style.display = "none";
+            latestPreview.style.display = 'none';
+            captionInput.style.display = 'none';
             currentPreviewIndex = null;
           } else if (currentPreviewIndex > index) {
             currentPreviewIndex--;
           }
-        });
+          renderThumbnails();
+        };
 
-        wrapper.appendChild(thumb);
-        wrapper.appendChild(caption);
-        wrapper.appendChild(deleteBtn);
-        previewContainer.appendChild(wrapper);
+        card.appendChild(thumb);
+        card.appendChild(caption);
+        card.appendChild(delBtn);
+        previewContainer.appendChild(card);
       });
     }
   </script>
+
 </body>
 </html>
